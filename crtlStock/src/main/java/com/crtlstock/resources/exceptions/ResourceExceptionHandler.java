@@ -1,0 +1,65 @@
+package com.crtlstock.resources.exceptions;
+
+import java.time.Instant;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+
+import com.crtlstock.services.exceptions.DBException;
+import com.crtlstock.services.exceptions.ResourcesNotFoundException;
+
+/*
+ * Classe responsavel pela interceptacao de erro feito ao requisitar acesso atraves do controlador Rest (Resource)
+ * */
+
+
+@ControllerAdvice
+public class ResourceExceptionHandler {
+	
+	@ExceptionHandler(ResourcesNotFoundException.class)
+	public ResponseEntity<StandardError> entityNotFound(ResourcesNotFoundException e, HttpServletRequest request){
+		StandardError err = new StandardError();
+		err.setTimestamp(Instant.now());
+		err.setStatus(HttpStatus.NOT_FOUND.value());
+		err.setError("Entity non trovato: " + e.getMessage());
+		err.setPath(request.getRequestURI());
+		
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(err);
+		
+	}
+	
+	
+	@ExceptionHandler(DBException.class)
+	public ResponseEntity<StandardError> DB(DBException e, HttpServletRequest request){
+		StandardError err = new StandardError();
+		err.setTimestamp(Instant.now());
+		err.setStatus(HttpStatus.BAD_REQUEST.value());
+		err.setError("Database Exception: " + e.getMessage());
+		err.setPath(request.getRequestURI());
+		
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(err);
+		
+	}
+
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	public ResponseEntity<ValidationError> Validation(MethodArgumentNotValidException e, HttpServletRequest request){
+		ValidationError err = new ValidationError();
+		err.setTimestamp(Instant.now());
+		err.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
+		err.setError("Validation Exception: " + e.getMessage());
+		err.setPath(request.getRequestURI());
+		
+		for (FieldError f : e.getBindingResult().getFieldErrors()) {
+			err.addErrors(f.getField(), f.getDefaultMessage());
+		}
+		
+		return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(err);
+		
+	}
+}

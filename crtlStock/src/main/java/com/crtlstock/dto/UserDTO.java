@@ -1,0 +1,73 @@
+package com.crtlstock.dto;
+
+import java.io.Serializable;
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
+
+import com.crtlstock.entities.User;
+
+
+
+public class UserDTO implements Serializable{
+	private static final long serialVersionUID = 1L;
+	private Long id;
+	
+	@Size(min=5, max=50, message = "Favor inserir entre 5 e 50 caracteres")
+	@NotBlank(message = "Campo Obrigatorio")
+	private String name;
+
+	@Email(message = "email sbagliato")
+	private String email;
+
+	Set<RoleDTO> roles = new HashSet<>();
+	
+	public UserDTO() {
+	}
+
+	public UserDTO(Long id, String name, String email) {
+		this.id = id;
+		this.name = name;
+		this.email = email;
+	}
+	
+	public UserDTO(User entity) {
+		id = entity.getId();
+		name = entity.getName();
+		email = entity.getEmail();
+
+		entity.getRoles().forEach(roles -> this.roles.add(new RoleDTO(roles)));
+		
+	}
+
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String firstName) {
+		this.name = firstName;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+	
+	public Set<RoleDTO> getRoles() {
+		return roles;
+	}
+}

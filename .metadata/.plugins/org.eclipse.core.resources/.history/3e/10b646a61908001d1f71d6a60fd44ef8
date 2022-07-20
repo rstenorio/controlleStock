@@ -1,0 +1,5 @@
+package com.crtlstock.dto;
+
+public class UserInsertDTO {
+
+}

@@ -1,0 +1,102 @@
+package com.crtlstock.services;
+
+import java.util.Optional;
+
+import javax.persistence.EntityNotFoundException;
+import javax.validation.Valid;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.crtlstock.dto.RoleDTO;
+import com.crtlstock.dto.UserDTO;
+import com.crtlstock.entities.Role;
+import com.crtlstock.entities.User;
+import com.crtlstock.repositories.RoleRepository;
+import com.crtlstock.repositories.UserRepository;
+import com.crtlstock.services.exceptions.DBException;
+import com.crtlstock.services.exceptions.ResourcesNotFoundException;
+
+@Service
+public class UserService {
+	@Autowired
+	private UserRepository repository;
+	
+	@Autowired
+	private RoleRepository roleRepository;
+	
+	@Transactional(readOnly = true) //evita lock do DB
+	public Page<UserDTO> findAllPaged(PageRequest pageRequest) {
+		Page<User> list = repository.findAll(pageRequest);
+		return  list.map(x-> new UserDTO(x));
+	}
+
+/*
+	@Transactional(readOnly = true) //evita lock do DB
+	public List<UserDTO> findAll(){
+		List<User> list = repository.findAll();
+		return  list.stream().map(x-> new UserDTO(x)).collect(Collectors.toList());
+	}
+*/
+	
+	@Transactional(readOnly = true) //evita lock do DB
+	public UserDTO findById(Long id) {
+		Optional<User> obj = repository.findById(id);
+		User entity = obj.orElseThrow(()-> new ResourcesNotFoundException("Categoria non trovata!!"));
+		return new UserDTO(entity);
+	}
+
+	@Transactional
+	public UserDTO insert(UserDTO dto) {
+		User entity = new User();
+		
+		copyDtoToEntity(dto, entity);
+
+		entity = repository.save(entity);
+		return new UserDTO(entity);
+	}
+
+	@Transactional
+	public UserDTO update(Long id, UserDTO dto) {
+		try {
+			User entity = repository.getReferenceById(id);
+			copyDtoToEntity(dto, entity);
+			entity = repository.save(entity);
+			return new UserDTO(entity);
+		} catch (EntityNotFoundException e) {
+			throw new ResourcesNotFoundException("Id non Trovato: " + id);
+		}
+		
+	}
+
+	//senza transactional per potere catturare una exception
+	public void delete(Long id) {
+		try {
+			repository.deleteById(id);
+		} catch (EmptyResultDataAccessException e) {
+			throw new ResourcesNotFoundException("Id non Trovato: " + id);
+		}catch (DataIntegrityViolationException e) {
+			throw new DBException("Categoria non puo' essere cancellata, c'ha produti collegata a lei: " + id);
+		}
+	}
+
+	private void copyDtoToEntity(@Valid UserDTO dto, User entity) {
+		entity.setName(dto.getName());
+		entity.setEmail(dto.getEmail());
+		entity.setPassword(dto.getPwd());
+		entity.getRoles().clear();
+		for(RoleDTO rolesDTO : dto.getRoles()) {
+			Role roles = roleRepository.getReferenceById(rolesDTO.getId());
+			entity.getRoles().add(roles);
+		}
+		
+	}
+	
+	
+	
+}
